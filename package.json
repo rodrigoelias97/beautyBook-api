@@ -1,0 +1,16 @@
+{
+  "name": "beautybook-api",
+  "version": "1.0.0",
+  "description": "API REST simples do BeautyBook com Express e banco em memoria.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
+  }
+}

@@ -1,0 +1,884 @@
+openapi: 3.0.3
+info:
+  title: BeautyBook API
+  version: 1.0.0
+  description: |
+    Especificacao OpenAPI da API REST do BeautyBook, baseada nos epicos, user stories
+    e regras de negocio do projeto.
+
+    Principais regras refletidas nesta API:
+    - Autenticacao obrigatoria para acesso aos recursos protegidos
+    - Controle de acesso por perfil (`ADMIN` e `CLIENT`)
+    - Gestao de servicos com regras condicionais para `necessitaAvaliacao`
+    - Configuracao de expediente, dias de funcionamento e intervalos
+    - Consulta de disponibilidade considerando agenda, sobreposicao e duracao do servico
+    - Criacao e cancelamento de agendamentos com regras operacionais do salao
+servers:
+  - url: http://localhost:3000/api
+    description: Ambiente local
+tags:
+  - name: Autenticacao
+  - name: Servicos
+  - name: Configuracao Operacional
+  - name: Disponibilidade
+  - name: Agendamentos
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticacao]
+      summary: Autentica um usuario
+      description: Permite login com email ou nome de usuario e senha.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /services:
+    get:
+      tags: [Servicos]
+      summary: Lista servicos
+      description: Lista o catalogo de servicos disponiveis para usuarios autenticados.
+      responses:
+        '200':
+          description: Lista de servicos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Servicos]
+      summary: Cadastra um servico
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreateRequest'
+      responses:
+        '201':
+          description: Servico criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Nome de servico duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: SERVICE_NAME_ALREADY_EXISTS
+                message: Ja existe um servico com este nome
+
+  /services/{serviceId}:
+    get:
+      tags: [Servicos]
+      summary: Busca um servico por identificador
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '200':
+          description: Servico encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Servicos]
+      summary: Atualiza um servico
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdateRequest'
+      responses:
+        '200':
+          description: Servico atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Nome de servico duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Servicos]
+      summary: Exclui um servico
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '204':
+          description: Servico excluido com sucesso
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /business-rules:
+    get:
+      tags: [Configuracao Operacional]
+      summary: Consulta configuracao operacional do salao
+      description: Retorna horario de funcionamento, dias de operacao, intervalos e fuso horario.
+      responses:
+        '200':
+          description: Configuracao retornada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessRules'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    put:
+      tags: [Configuracao Operacional]
+      summary: Atualiza configuracao operacional do salao
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRulesUpsertRequest'
+      responses:
+        '200':
+          description: Configuracao atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessRules'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /availability:
+    get:
+      tags: [Disponibilidade]
+      summary: Consulta horarios disponiveis para agendamento
+      description: |
+        Consulta disponibilidade por data obrigatoria, com filtro opcional de hora.
+        O calculo considera horario de funcionamento, dias de operacao, intervalos,
+        horarios ocupados e duracao do servico.
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Data no formato ISO `YYYY-MM-DD`.
+          schema:
+            type: string
+            format: date
+        - name: time
+          in: query
+          required: false
+          description: Hora opcional no formato `HH:mm`.
+          schema:
+            $ref: '#/components/schemas/LocalTime'
+        - name: serviceId
+          in: query
+          required: true
+          description: Servico usado para calcular a duracao e disponibilidade.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Horarios disponiveis calculados com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /appointments:
+    post:
+      tags: [Agendamentos]
+      summary: Cria um agendamento ou solicitacao de avaliacao
+      description: |
+        Recurso restrito ao perfil `CLIENT`. Quando o servico possuir
+        `necessitaAvaliacao = true`, a API cria uma solicitacao com status
+        `PENDENTE_AVALIACAO` e nao bloqueia horario automaticamente.
+      x-roles:
+        - CLIENT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreateRequest'
+      responses:
+        '201':
+          description: Agendamento ou solicitacao criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentCreateResponse'
+        '400':
+          description: Requisicao invalida ou regra de negocio violada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPhone:
+                  summary: Telefone invalido
+                  value:
+                    code: INVALID_PHONE
+                    message: O telefone deve possuir 11 digitos
+                invalidSchedule:
+                  summary: Fora do expediente
+                  value:
+                    code: OUTSIDE_BUSINESS_HOURS
+                    message: O horario informado esta fora do expediente
+                pastDateTime:
+                  summary: Data ou horario no passado
+                  value:
+                    code: APPOINTMENT_IN_PAST
+                    message: Nao e permitido criar agendamentos em datas ou horarios passados
+                appointmentLimit:
+                  summary: Limite diario excedido
+                  value:
+                    code: DAILY_APPOINTMENT_LIMIT_REACHED
+                    message: O cliente ja possui 2 agendamentos nesta data
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Conflito de horario ou sobreposicao
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                exactConflict:
+                  value:
+                    code: TIME_SLOT_UNAVAILABLE
+                    message: Ja existe um agendamento para este horario
+                overlapConflict:
+                  value:
+                    code: TIME_SLOT_OVERLAP
+                    message: O horario solicitado conflita com outro agendamento existente
+
+    get:
+      tags: [Agendamentos]
+      summary: Lista a agenda completa por data
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Data no formato ISO `YYYY-MM-DD`.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Agenda do dia retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminAppointmentView'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /appointments/{appointmentId}:
+    get:
+      tags: [Agendamentos]
+      summary: Consulta um agendamento por identificador
+      description: |
+        `CLIENT` pode consultar apenas seus proprios agendamentos.
+        `ADMIN` pode consultar qualquer agendamento.
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Agendamento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /appointments/{appointmentId}/cancel:
+    patch:
+      tags: [Agendamentos]
+      summary: Cancela um agendamento
+      description: |
+        `CLIENT` pode cancelar apenas seus proprios agendamentos.
+        `ADMIN` pode cancelar qualquer agendamento.
+        O cancelamento exige antecedencia minima de 48 horas.
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCancellationRequest'
+      responses:
+        '200':
+          description: Agendamento cancelado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Cancelamento nao permitido pela regra de negocio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: CANCELLATION_WINDOW_EXPIRED
+                message: Cancelamento permitido apenas com 48 horas de antecedencia
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ServiceId:
+      name: serviceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    UnauthorizedError:
+      description: Usuario nao autenticado ou token invalido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: UNAUTHORIZED
+            message: Autenticacao obrigatoria
+    ForbiddenError:
+      description: Usuario autenticado sem permissao para o recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: FORBIDDEN
+            message: Voce nao possui permissao para acessar este recurso
+    NotFoundError:
+      description: Recurso nao encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RESOURCE_NOT_FOUND
+            message: Recurso nao encontrado
+    ValidationError:
+      description: Dados invalidos na requisicao
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          description: Email ou nome de usuario
+          example: cliente@beautybook.com
+        password:
+          type: string
+          format: password
+          example: cliente123
+
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Tempo de expiracao do token em segundos
+          example: 3600
+        user:
+          $ref: '#/components/schemas/AuthenticatedUser'
+
+    AuthenticatedUser:
+      type: object
+      required:
+        - id
+        - name
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Maria Silva
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    UserRole:
+      type: string
+      enum:
+        - ADMIN
+        - CLIENT
+
+    Service:
+      allOf:
+        - $ref: '#/components/schemas/ServiceBase'
+        - type: object
+          required:
+            - id
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    ServiceBase:
+      type: object
+      required:
+        - name
+        - necessitaAvaliacao
+      properties:
+        name:
+          type: string
+          maxLength: 44
+          example: Corte feminino
+        description:
+          type: string
+          nullable: true
+          example: Corte com finalizacao simples
+        necessitaAvaliacao:
+          type: boolean
+          example: false
+        tempoServico:
+          allOf:
+            - $ref: '#/components/schemas/LocalTime'
+          nullable: true
+          description: Obrigatorio quando `necessitaAvaliacao = false`. Faixa permitida de `00:15` a `08:00`.
+          example: '01:30'
+        valor:
+          type: number
+          format: double
+          nullable: true
+          minimum: 0.01
+          description: Obrigatorio quando `necessitaAvaliacao = false`.
+          example: 120.0
+
+    ServiceCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ServiceBase'
+
+    ServiceUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ServiceBase'
+
+    BusinessRules:
+      type: object
+      required:
+        - timezone
+        - openingTime
+        - closingTime
+        - workingDays
+        - breaks
+      properties:
+        timezone:
+          type: string
+          example: America/Sao_Paulo
+        openingTime:
+          $ref: '#/components/schemas/LocalTime'
+        closingTime:
+          $ref: '#/components/schemas/LocalTime'
+        workingDays:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WorkingDay'
+          example:
+            - TUESDAY
+            - WEDNESDAY
+            - THURSDAY
+            - FRIDAY
+            - SATURDAY
+        breaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreakInterval'
+
+    BusinessRulesUpsertRequest:
+      allOf:
+        - $ref: '#/components/schemas/BusinessRules'
+
+    WorkingDay:
+      type: string
+      enum:
+        - TUESDAY
+        - WEDNESDAY
+        - THURSDAY
+        - FRIDAY
+        - SATURDAY
+
+    BreakInterval:
+      type: object
+      required:
+        - startTime
+        - endTime
+      properties:
+        startTime:
+          $ref: '#/components/schemas/LocalTime'
+        endTime:
+          $ref: '#/components/schemas/LocalTime'
+
+    AvailabilityResponse:
+      type: object
+      required:
+        - date
+        - serviceId
+        - availableSlots
+      properties:
+        date:
+          type: string
+          format: date
+        serviceId:
+          type: string
+          format: uuid
+        availableSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailableSlot'
+
+    AvailableSlot:
+      type: object
+      required:
+        - startTime
+        - endTime
+      properties:
+        startTime:
+          $ref: '#/components/schemas/LocalTime'
+        endTime:
+          $ref: '#/components/schemas/LocalTime'
+
+    AppointmentCreateRequest:
+      type: object
+      required:
+        - clienteId
+        - servicoId
+        - data
+        - hora
+        - telefone
+      properties:
+        clienteId:
+          type: string
+          format: uuid
+        servicoId:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+          description: Data no padrao ISO `YYYY-MM-DD`.
+        hora:
+          $ref: '#/components/schemas/LocalTime'
+        telefone:
+          type: string
+          pattern: '^\d{11}$'
+          description: Telefone com 11 digitos (DDD + numero).
+          example: '11999998888'
+        observacao:
+          type: string
+          nullable: true
+          maxLength: 500
+
+    AppointmentCreateResponse:
+      type: object
+      required:
+        - id
+        - status
+        - clienteId
+        - servico
+        - data
+        - hora
+        - telefone
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        clienteId:
+          type: string
+          format: uuid
+        servico:
+          $ref: '#/components/schemas/Service'
+        data:
+          type: string
+          format: date
+        hora:
+          $ref: '#/components/schemas/LocalTime'
+        telefone:
+          type: string
+        mensagem:
+          type: string
+          nullable: true
+          example: Este servico requer avaliacao. Entre em contato com o salao.
+        tempoEstimado:
+          allOf:
+            - $ref: '#/components/schemas/LocalTime'
+          nullable: true
+        valor:
+          type: number
+          format: double
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Appointment:
+      type: object
+      required:
+        - id
+        - clienteId
+        - servicoId
+        - status
+        - data
+        - hora
+        - telefone
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        clienteId:
+          type: string
+          format: uuid
+        servicoId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        data:
+          type: string
+          format: date
+        hora:
+          $ref: '#/components/schemas/LocalTime'
+        telefone:
+          type: string
+        observacao:
+          type: string
+          nullable: true
+        motivoCancelamento:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminAppointmentView:
+      type: object
+      required:
+        - id
+        - clientName
+        - serviceName
+        - status
+        - date
+        - time
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+          example: Ana Paula
+        serviceName:
+          type: string
+          example: Escova
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        date:
+          type: string
+          format: date
+        time:
+          $ref: '#/components/schemas/LocalTime'
+        valor:
+          type: number
+          format: double
+          nullable: true
+          example: 80.0
+
+    AppointmentCancellationRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    AppointmentStatus:
+      type: string
+      enum:
+        - CONFIRMED
+        - PENDENTE_AVALIACAO
+        - CANCELLED
+
+    LocalTime:
+      type: string
+      pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+      example: '13:30'
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: BUSINESS_RULE_VIOLATION
+        message:
+          type: string
+          example: Nao foi possivel concluir a operacao
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/FieldValidationError'
+
+    FieldValidationError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: telefone
+        message:
+          type: string
+          example: O telefone deve possuir 11 digitos
