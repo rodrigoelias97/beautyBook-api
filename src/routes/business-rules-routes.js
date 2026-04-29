@@ -15,11 +15,10 @@ businessRulesRoutes.put('/', requireRole('ADMIN'), (req, res, next) => {
   try {
     validateBusinessRulesPayload(req.body);
 
-    db.businessRules.timezone = req.body.timezone;
-    db.businessRules.openingTime = req.body.openingTime;
-    db.businessRules.closingTime = req.body.closingTime;
-    db.businessRules.workingDays = req.body.workingDays;
-    db.businessRules.breaks = req.body.breaks;
+    db.businessRules.horaAbertura = req.body.horaAbertura;
+    db.businessRules.horaFechamento = req.body.horaFechamento;
+    db.businessRules.diasFuncionamento = req.body.diasFuncionamento;
+    db.businessRules.intervalos = req.body.intervalos;
 
     res.json(db.businessRules);
   } catch (error) {

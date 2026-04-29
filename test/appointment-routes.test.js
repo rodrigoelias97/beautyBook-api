@@ -21,9 +21,10 @@ describe('Rotas de agendamentos', () => {
     expect(response.status).to.equal(201);
     expect(response.body).to.include({
       status: 'CONFIRMED',
-      clienteId: '2469ec8e-a822-4f97-ac6c-6f53e61dbb4b',
+      nomeCliente: 'Cliente Exemplo',
+      nomeServico: 'Corte feminino',
       data: date,
-      hora: '13:00',
+      hora: '13:30',
       tempoEstimado: '01:00',
       valor: 80
     });
@@ -37,7 +38,7 @@ describe('Rotas de agendamentos', () => {
       .set(authHeader)
       .send(buildAppointmentPayload({
         data: getNextWorkingDate(7),
-        clienteId: '9b8ee0ab-863f-4b9a-8d9c-fcc2d2732e01'
+        nomeCliente: 'Administrador BeautyBook'
       }));
 
     expect(response.status).to.equal(403);
@@ -53,7 +54,7 @@ describe('Rotas de agendamentos', () => {
       .set(authHeader)
       .send(buildAppointmentPayload({
         data: date,
-        servicoId: '2594dc1d-e1e5-4569-ab4c-026872f3dd15'
+        nomeServico: 'Coloracao personalizada'
       }));
 
     expect(response.status).to.equal(201);
@@ -65,8 +66,8 @@ describe('Rotas de agendamentos', () => {
     const authHeader = await getAuthHeader('client');
     const date = getNextWorkingDate(7);
 
-    createAppointment({ data: date, hora: '13:00' });
-    createAppointment({ data: date, hora: '14:15' });
+    createAppointment({ data: date, hora: '13:30' });
+    createAppointment({ data: date, hora: '14:45' });
 
     const response = await request(app)
       .post('/api/appointments')
@@ -84,14 +85,14 @@ describe('Rotas de agendamentos', () => {
     const authHeader = await getAuthHeader('client');
     const date = getNextWorkingDate(7);
 
-    createAppointment({ data: date, hora: '13:00' });
+    createAppointment({ data: date, hora: '13:30' });
 
     const response = await request(app)
       .post('/api/appointments')
       .set(authHeader)
       .send(buildAppointmentPayload({
         data: date,
-        hora: '13:30'
+        hora: '14:00'
       }));
 
     expect(response.status).to.equal(409);
@@ -111,22 +112,22 @@ describe('Rotas de agendamentos', () => {
 
   it('deve listar agendamentos do dia para administrador', async () => {
     const authHeader = await getAuthHeader('admin');
-    const date = getNextWorkingDate(7);
+    const data = getNextWorkingDate(7);
 
-    createAppointment({ data: date, hora: '14:00' });
+    createAppointment({ data, hora: '14:00' });
 
     const response = await request(app)
       .get('/api/appointments')
-      .query({ date })
+      .query({ data })
       .set(authHeader);
 
     expect(response.status).to.equal(200);
     expect(response.body).to.have.lengthOf(1);
     expect(response.body[0]).to.include({
-      clientName: 'Cliente Exemplo',
-      serviceName: 'Corte feminino',
-      date,
-      time: '14:00'
+      nomeCliente: 'Cliente Exemplo',
+      nomeServico: 'Corte feminino',
+      data,
+      hora: '14:00'
     });
   });
 

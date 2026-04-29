@@ -1,13 +1,12 @@
 export function buildBusinessRulesPayload(overrides = {}) {
   return {
-    timezone: 'America/Sao_Paulo',
-    openingTime: '09:00',
-    closingTime: '18:00',
-    workingDays: ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
-    breaks: [
+    horaAbertura: '09:00',
+    horaFechamento: '18:00',
+    diasFuncionamento: ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
+    intervalos: [
       {
-        startTime: '12:00',
-        endTime: '13:00'
+        horaInicio: '12:00',
+        horaFim: '13:00'
       }
     ],
     ...overrides

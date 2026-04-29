@@ -77,7 +77,7 @@ Como cliente, quero agendar um servico em um horario disponivel, para reservar m
 
 **Criterios de aceitacao**
 - Apenas usuarios com perfil `CLIENT` podem criar seus proprios agendamentos.
-- O sistema deve validar `clienteId`, `servicoId`, `data`, `hora` e `telefone`.
+- O sistema deve validar `nomeCliente`, `nomeServico`, `data`, `hora` e `telefone`.
 - O telefone deve possuir 11 digitos.
 - O sistema nao deve permitir agendamentos em datas ou horarios passados.
 - O sistema nao deve permitir agendamentos fora do expediente.

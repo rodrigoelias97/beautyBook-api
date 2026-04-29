@@ -14,13 +14,12 @@ export function resetDatabase() {
   db.appointments.splice(0, db.appointments.length, ...structuredClone(initialState.appointments));
   db.sessions.splice(0, db.sessions.length, ...structuredClone(initialState.sessions));
 
-  db.businessRules.timezone = initialState.businessRules.timezone;
-  db.businessRules.openingTime = initialState.businessRules.openingTime;
-  db.businessRules.closingTime = initialState.businessRules.closingTime;
-  db.businessRules.workingDays.splice(
+  db.businessRules.horaAbertura = initialState.businessRules.horaAbertura;
+  db.businessRules.horaFechamento = initialState.businessRules.horaFechamento;
+  db.businessRules.diasFuncionamento.splice(
     0,
-    db.businessRules.workingDays.length,
-    ...structuredClone(initialState.businessRules.workingDays)
+    db.businessRules.diasFuncionamento.length,
+    ...structuredClone(initialState.businessRules.diasFuncionamento)
   );
-  db.businessRules.breaks.splice(0, db.businessRules.breaks.length, ...structuredClone(initialState.businessRules.breaks));
+  db.businessRules.intervalos.splice(0, db.businessRules.intervalos.length, ...structuredClone(initialState.businessRules.intervalos));
 }

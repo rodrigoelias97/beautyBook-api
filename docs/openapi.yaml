@@ -83,7 +83,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Service'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Dados invalidos para cadastro do servico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                invalidTimeFormat:
+                  summary: Hora fora do formato esperado
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: Formato de hora invalido. Use HH:MM
+                invalidTimeRange:
+                  summary: tempoServico fora da faixa permitida
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: tempoServico deve estar entre 00:15 e 08:00
+                invalidValue:
+                  summary: Valor menor ou igual a zero
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: valor
+                        message: valor deve ser maior que zero
+                missingRequiredFields:
+                  summary: Campos obrigatorios ausentes quando nao exige avaliacao
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: tempoServico e obrigatorio quando necessitaAvaliacao for false
+                      - field: valor
+                        message: valor e obrigatorio quando necessitaAvaliacao for false
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -98,12 +137,12 @@ paths:
                 code: SERVICE_NAME_ALREADY_EXISTS
                 message: Ja existe um servico com este nome
 
-  /services/{serviceId}:
+  /services/{nomeServico}:
     get:
       tags: [Servicos]
-      summary: Busca um servico por identificador
+      summary: Busca um servico por nome
       parameters:
-        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/NomeServico'
       responses:
         '200':
           description: Servico encontrado
@@ -122,7 +161,7 @@ paths:
       x-roles:
         - ADMIN
       parameters:
-        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/NomeServico'
       requestBody:
         required: true
         content:
@@ -137,7 +176,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Service'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Dados invalidos para atualizacao do servico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                invalidTimeFormat:
+                  summary: Hora fora do formato esperado
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: Formato de hora invalido. Use HH:MM
+                invalidTimeRange:
+                  summary: tempoServico fora da faixa permitida
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: tempoServico deve estar entre 00:15 e 08:00
+                invalidValue:
+                  summary: Valor menor ou igual a zero
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: valor
+                        message: valor deve ser maior que zero
+                missingRequiredFields:
+                  summary: Campos obrigatorios ausentes quando nao exige avaliacao
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Dados do servico invalidos
+                    details:
+                      - field: tempoServico
+                        message: tempoServico e obrigatorio quando necessitaAvaliacao for false
+                      - field: valor
+                        message: valor e obrigatorio quando necessitaAvaliacao for false
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -157,7 +235,7 @@ paths:
       x-roles:
         - ADMIN
       parameters:
-        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/NomeServico'
       responses:
         '204':
           description: Servico excluido com sucesso
@@ -172,7 +250,7 @@ paths:
     get:
       tags: [Configuracao Operacional]
       summary: Consulta configuracao operacional do salao
-      description: Retorna horario de funcionamento, dias de operacao, intervalos e fuso horario.
+      description: Retorna horario de funcionamento, dias de operacao e intervalos.
       responses:
         '200':
           description: Configuracao retornada com sucesso
@@ -202,7 +280,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/BusinessRules'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Dados invalidos para configuracao operacional
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                invalidOpeningTime:
+                  summary: horaAbertura fora do formato
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: horaAbertura
+                        message: Formato de hora invalido. Use HH:MM
+                invalidClosingTime:
+                  summary: horaFechamento fora do formato
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: horaFechamento
+                        message: Formato de hora invalido. Use HH:MM
+                invalidTimeOrder:
+                  summary: Hora final menor ou igual a inicial
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: horaFechamento
+                        message: horaFechamento deve ser maior que horaAbertura
+                invalidWorkingDay:
+                  summary: Dia da semana invalido
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: diasFuncionamento
+                        message: diasFuncionamento aceita apenas dias validos entre SUNDAY e SATURDAY
+                invalidBreakFormat:
+                  summary: Intervalo com formato invalido
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: intervalos[0].horaInicio
+                        message: Formato de hora invalido. Use HH:MM
+                      - field: intervalos[0].horaFim
+                        message: Formato de hora invalido. Use HH:MM
+                invalidBreakOrder:
+                  summary: Hora final do intervalo menor ou igual a inicial
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Configuracao operacional invalida
+                    details:
+                      - field: intervalos[0]
+                        message: horaFim deve ser maior que horaInicio
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -217,26 +350,25 @@ paths:
         O calculo considera horario de funcionamento, dias de operacao, intervalos,
         horarios ocupados e duracao do servico.
       parameters:
-        - name: date
+        - name: data
           in: query
           required: true
           description: Data no formato ISO `YYYY-MM-DD`.
           schema:
             type: string
             format: date
-        - name: time
+        - name: hora
           in: query
           required: false
           description: Hora opcional no formato `HH:mm`.
           schema:
             $ref: '#/components/schemas/LocalTime'
-        - name: serviceId
+        - name: nomeServico
           in: query
           required: true
-          description: Servico usado para calcular a duracao e disponibilidade.
+          description: Nome do servico usado para calcular a duracao e disponibilidade.
           schema:
             type: string
-            format: uuid
       responses:
         '200':
           description: Horarios disponiveis calculados com sucesso
@@ -330,7 +462,7 @@ paths:
       x-roles:
         - ADMIN
       parameters:
-        - name: date
+        - name: data
           in: query
           required: true
           description: Data no formato ISO `YYYY-MM-DD`.
@@ -423,13 +555,13 @@ components:
       bearerFormat: JWT
 
   parameters:
-    ServiceId:
-      name: serviceId
+    NomeServico:
+      name: nomeServico
       in: path
       required: true
       schema:
         type: string
-        format: uuid
+      description: Nome do servico na URL. Quando houver espacos, deve ser enviado com URL encoding.
     AppointmentId:
       name: appointmentId
       in: path
@@ -593,20 +725,16 @@ components:
     BusinessRules:
       type: object
       required:
-        - timezone
-        - openingTime
-        - closingTime
-        - workingDays
-        - breaks
+        - horaAbertura
+        - horaFechamento
+        - diasFuncionamento
+        - intervalos
       properties:
-        timezone:
-          type: string
-          example: America/Sao_Paulo
-        openingTime:
+        horaAbertura:
           $ref: '#/components/schemas/LocalTime'
-        closingTime:
+        horaFechamento:
           $ref: '#/components/schemas/LocalTime'
-        workingDays:
+        diasFuncionamento:
           type: array
           minItems: 1
           items:
@@ -617,7 +745,7 @@ components:
             - THURSDAY
             - FRIDAY
             - SATURDAY
-        breaks:
+        intervalos:
           type: array
           items:
             $ref: '#/components/schemas/BreakInterval'
@@ -629,6 +757,8 @@ components:
     WorkingDay:
       type: string
       enum:
+        - SUNDAY
+        - MONDAY
         - TUESDAY
         - WEDNESDAY
         - THURSDAY
@@ -638,28 +768,28 @@ components:
     BreakInterval:
       type: object
       required:
-        - startTime
-        - endTime
+        - horaInicio
+        - horaFim
       properties:
-        startTime:
+        horaInicio:
           $ref: '#/components/schemas/LocalTime'
-        endTime:
+        horaFim:
           $ref: '#/components/schemas/LocalTime'
 
     AvailabilityResponse:
       type: object
       required:
-        - date
-        - serviceId
-        - availableSlots
+        - data
+        - nomeServico
+        - horariosDisponiveis
       properties:
-        date:
+        data:
           type: string
           format: date
-        serviceId:
+        nomeServico:
           type: string
-          format: uuid
-        availableSlots:
+          example: Corte feminino
+        horariosDisponiveis:
           type: array
           items:
             $ref: '#/components/schemas/AvailableSlot'
@@ -667,29 +797,29 @@ components:
     AvailableSlot:
       type: object
       required:
-        - startTime
-        - endTime
+        - horaInicio
+        - horaFim
       properties:
-        startTime:
+        horaInicio:
           $ref: '#/components/schemas/LocalTime'
-        endTime:
+        horaFim:
           $ref: '#/components/schemas/LocalTime'
 
     AppointmentCreateRequest:
       type: object
       required:
-        - clienteId
-        - servicoId
+        - nomeCliente
+        - nomeServico
         - data
         - hora
         - telefone
       properties:
-        clienteId:
+        nomeCliente:
           type: string
-          format: uuid
-        servicoId:
+          example: Cliente Exemplo
+        nomeServico:
           type: string
-          format: uuid
+          example: Corte feminino
         data:
           type: string
           format: date
@@ -711,8 +841,8 @@ components:
       required:
         - id
         - status
-        - clienteId
-        - servico
+        - nomeCliente
+        - nomeServico
         - data
         - hora
         - telefone
@@ -723,11 +853,12 @@ components:
           format: uuid
         status:
           $ref: '#/components/schemas/AppointmentStatus'
-        clienteId:
+        nomeCliente:
           type: string
-          format: uuid
-        servico:
-          $ref: '#/components/schemas/Service'
+          example: Cliente Exemplo
+        nomeServico:
+          type: string
+          example: Corte feminino
         data:
           type: string
           format: date
@@ -755,8 +886,8 @@ components:
       type: object
       required:
         - id
-        - clienteId
-        - servicoId
+        - nomeCliente
+        - nomeServico
         - status
         - data
         - hora
@@ -766,12 +897,12 @@ components:
         id:
           type: string
           format: uuid
-        clienteId:
+        nomeCliente:
           type: string
-          format: uuid
-        servicoId:
+          example: Cliente Exemplo
+        nomeServico:
           type: string
-          format: uuid
+          example: Corte feminino
         status:
           $ref: '#/components/schemas/AppointmentStatus'
         data:
@@ -799,27 +930,27 @@ components:
       type: object
       required:
         - id
-        - clientName
-        - serviceName
+        - nomeCliente
+        - nomeServico
         - status
-        - date
-        - time
+        - data
+        - hora
       properties:
         id:
           type: string
           format: uuid
-        clientName:
+        nomeCliente:
           type: string
           example: Ana Paula
-        serviceName:
+        nomeServico:
           type: string
           example: Escova
         status:
           $ref: '#/components/schemas/AppointmentStatus'
-        date:
+        data:
           type: string
           format: date
-        time:
+        hora:
           $ref: '#/components/schemas/LocalTime'
         valor:
           type: number
@@ -878,7 +1009,7 @@ components:
       properties:
         field:
           type: string
-          example: telefone
+          example: tempoServico
         message:
           type: string
-          example: O telefone deve possuir 11 digitos
+          example: Formato de hora invalido. Use HH:MM

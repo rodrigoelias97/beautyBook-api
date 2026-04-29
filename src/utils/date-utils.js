@@ -13,6 +13,10 @@ export function isValidDate(value) {
 }
 
 export function isValidTime(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 

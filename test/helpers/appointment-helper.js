@@ -7,7 +7,7 @@ export function createAppointment(overrides = {}) {
     servicoId: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4',
     status: 'CONFIRMED',
     data: overrides.data ?? '2099-05-06',
-    hora: overrides.hora ?? '13:00',
+    hora: overrides.hora ?? '13:30',
     telefone: '11999999999',
     observacao: null,
     motivoCancelamento: null,

@@ -16,28 +16,28 @@ availabilityRoutes.use(authenticate);
 
 availabilityRoutes.get('/', (req, res, next) => {
   try {
-    const { date, time, serviceId } = req.query;
+    const { data, hora, nomeServico } = req.query;
 
-    if (!date || !serviceId) {
-      throw createHttpError(400, 'VALIDATION_ERROR', 'date e serviceId sao obrigatorios', [
-        { field: 'date', message: !date ? 'Campo obrigatorio' : undefined },
-        { field: 'serviceId', message: !serviceId ? 'Campo obrigatorio' : undefined }
-      ].filter((item) => item.message))
+    if (!data || !nomeServico) {
+      throw createHttpError(400, 'VALIDATION_ERROR', 'data e nomeServico sao obrigatorios', [
+        { field: 'data', message: !data ? 'Campo obrigatorio' : undefined },
+        { field: 'nomeServico', message: !nomeServico ? 'Campo obrigatorio' : undefined }
+      ].filter((item) => item.message));
     }
 
-    if (!isValidDate(date)) {
+    if (!isValidDate(data)) {
       throw createHttpError(400, 'VALIDATION_ERROR', 'A data deve estar no formato YYYY-MM-DD', [
-        { field: 'date', message: 'A data deve estar no formato YYYY-MM-DD' }
+        { field: 'data', message: 'A data deve estar no formato YYYY-MM-DD' }
       ]);
     }
 
-    if (time && !isValidTime(time)) {
-      throw createHttpError(400, 'VALIDATION_ERROR', 'A hora deve estar no formato HH:mm', [
-        { field: 'time', message: 'A hora deve estar no formato HH:mm' }
+    if (hora && !isValidTime(hora)) {
+      throw createHttpError(400, 'VALIDATION_ERROR', 'Formato de hora invalido. Use HH:MM', [
+        { field: 'hora', message: 'Formato de hora invalido. Use HH:MM' }
       ]);
     }
 
-    const service = db.services.find((item) => item.id === serviceId);
+    const service = db.services.find((item) => item.name.toLowerCase() === String(nomeServico).trim().toLowerCase());
 
     if (!service) {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Servico nao encontrado');
@@ -47,35 +47,35 @@ availabilityRoutes.get('/', (req, res, next) => {
       throw createHttpError(400, 'SERVICE_REQUIRES_EVALUATION', 'Este servico requer avaliacao e nao possui agenda automatica');
     }
 
-    const workingDay = getWorkingDay(date);
+    const workingDay = getWorkingDay(data);
 
-    if (!db.businessRules.workingDays.includes(workingDay)) {
+    if (!db.businessRules.diasFuncionamento.includes(workingDay)) {
       return res.json({
-        date,
-        serviceId,
-        availableSlots: []
+        data,
+        nomeServico: service.name,
+        horariosDisponiveis: []
       });
     }
 
     const durationInMinutes = timeToMinutes(service.tempoServico);
-    const openingMinutes = timeToMinutes(db.businessRules.openingTime);
-    const closingMinutes = timeToMinutes(db.businessRules.closingTime);
+    const openingMinutes = timeToMinutes(db.businessRules.horaAbertura);
+    const closingMinutes = timeToMinutes(db.businessRules.horaFechamento);
     const busyAppointments = db.appointments.filter((item) => {
-      return item.data === date && item.status === 'CONFIRMED';
+      return item.data === data && item.status === 'CONFIRMED';
     });
 
-    const availableSlots = [];
+    const horariosDisponiveis = [];
 
     for (let startMinutes = openingMinutes; startMinutes + durationInMinutes <= closingMinutes; startMinutes += 15) {
       const slotStart = addMinutes('00:00', startMinutes);
       const slotEnd = addMinutes(slotStart, durationInMinutes);
 
-      if (time && slotStart < time) {
+      if (hora && slotStart < hora) {
         continue;
       }
 
-      const isDuringBreak = db.businessRules.breaks.some((item) => {
-        return startMinutes < timeToMinutes(item.endTime) && timeToMinutes(slotEnd) > timeToMinutes(item.startTime);
+      const isDuringBreak = db.businessRules.intervalos.some((item) => {
+        return startMinutes < timeToMinutes(item.horaFim) && timeToMinutes(slotEnd) > timeToMinutes(item.horaInicio);
       });
 
       if (isDuringBreak) {
@@ -99,16 +99,16 @@ availabilityRoutes.get('/', (req, res, next) => {
         continue;
       }
 
-      availableSlots.push({
-        startTime: slotStart,
-        endTime: slotEnd
+      horariosDisponiveis.push({
+        horaInicio: slotStart,
+        horaFim: slotEnd
       });
     }
 
     res.json({
-      date,
-      serviceId,
-      availableSlots
+      data,
+      nomeServico: service.name,
+      horariosDisponiveis
     });
   } catch (error) {
     next(error);

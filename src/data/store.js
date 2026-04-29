@@ -45,14 +45,13 @@ const services = [
 ];
 
 const businessRules = {
-  timezone: 'America/Sao_Paulo',
-  openingTime: '13:00',
-  closingTime: '22:00',
-  workingDays: ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
-  breaks: [
+  horaAbertura: '13:30',
+  horaFechamento: '22:00',
+  diasFuncionamento: ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
+  intervalos: [
     {
-      startTime: '17:00',
-      endTime: '18:00'
+      horaInicio: '17:00',
+      horaFim: '18:00'
     }
   ]
 };

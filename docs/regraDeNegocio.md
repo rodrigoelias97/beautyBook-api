@@ -55,8 +55,8 @@
 ## 3. Agendamento
 
 ### Campos
-- clienteId
-- servicoId
+- nomeCliente
+- nomeServico
 - data
 - hora
 - telefone (11 dígitos: DDD + número)

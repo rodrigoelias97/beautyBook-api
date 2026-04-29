@@ -8,13 +8,18 @@ const serviceRoutes = express.Router();
 
 serviceRoutes.use(authenticate);
 
+function findServiceByName(nomeServico) {
+  const normalizedName = decodeURIComponent(nomeServico).trim().toLowerCase();
+  return db.services.find((item) => item.name.toLowerCase() === normalizedName);
+}
+
 serviceRoutes.get('/', (req, res) => {
   res.json(db.services);
 });
 
-serviceRoutes.get('/:serviceId', (req, res, next) => {
+serviceRoutes.get('/:nomeServico', (req, res, next) => {
   try {
-    const service = db.services.find((item) => item.id === req.params.serviceId);
+    const service = findServiceByName(req.params.nomeServico);
 
     if (!service) {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Servico nao encontrado');
@@ -48,9 +53,9 @@ serviceRoutes.post('/', requireRole('ADMIN'), (req, res, next) => {
   }
 });
 
-serviceRoutes.put('/:serviceId', requireRole('ADMIN'), (req, res, next) => {
+serviceRoutes.put('/:nomeServico', requireRole('ADMIN'), (req, res, next) => {
   try {
-    const service = db.services.find((item) => item.id === req.params.serviceId);
+    const service = findServiceByName(req.params.nomeServico);
 
     if (!service) {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Servico nao encontrado');
@@ -71,14 +76,15 @@ serviceRoutes.put('/:serviceId', requireRole('ADMIN'), (req, res, next) => {
   }
 });
 
-serviceRoutes.delete('/:serviceId', requireRole('ADMIN'), (req, res, next) => {
+serviceRoutes.delete('/:nomeServico', requireRole('ADMIN'), (req, res, next) => {
   try {
-    const index = db.services.findIndex((item) => item.id === req.params.serviceId);
+    const service = findServiceByName(req.params.nomeServico);
 
-    if (index === -1) {
+    if (!service) {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Servico nao encontrado');
     }
 
+    const index = db.services.findIndex((item) => item.id === service.id);
     db.services.splice(index, 1);
     res.status(204).send();
   } catch (error) {

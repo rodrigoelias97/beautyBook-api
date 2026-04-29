@@ -23,14 +23,18 @@ describe('Rotas de disponibilidade', () => {
     const response = await request(app)
       .get('/api/availability')
       .query({
-        date: getNextWorkingDate(7),
-        serviceId: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4',
-        time: '25:99'
+        data: getNextWorkingDate(7),
+        nomeServico: 'Corte feminino',
+        hora: '25:99'
       })
       .set(authHeader);
 
     expect(response.status).to.equal(400);
     expect(response.body.code).to.equal('VALIDATION_ERROR');
+    expect(response.body.details).to.deep.include({
+      field: 'hora',
+      message: 'Formato de hora invalido. Use HH:MM'
+    });
   });
 
   it('deve informar erro quando o servico nao existir', async () => {
@@ -39,8 +43,8 @@ describe('Rotas de disponibilidade', () => {
     const response = await request(app)
       .get('/api/availability')
       .query({
-        date: getNextWorkingDate(7),
-        serviceId: 'servico-ausente'
+        data: getNextWorkingDate(7),
+        nomeServico: 'Servico ausente'
       })
       .set(authHeader);
 
@@ -54,8 +58,8 @@ describe('Rotas de disponibilidade', () => {
     const response = await request(app)
       .get('/api/availability')
       .query({
-        date: getNextWorkingDate(7),
-        serviceId: '2594dc1d-e1e5-4569-ab4c-026872f3dd15'
+        data: getNextWorkingDate(7),
+        nomeServico: 'Coloracao personalizada'
       })
       .set(authHeader);
 
@@ -65,43 +69,43 @@ describe('Rotas de disponibilidade', () => {
 
   it('deve retornar lista vazia quando a data nao for um dia de funcionamento', async () => {
     const authHeader = await getAuthHeader('client');
-    const date = getNextNonWorkingDate(1);
+    const data = getNextNonWorkingDate(1);
 
     const response = await request(app)
       .get('/api/availability')
       .query({
-        date,
-        serviceId: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4'
+        data,
+        nomeServico: 'Corte feminino'
       })
       .set(authHeader);
 
     expect(response.status).to.equal(200);
     expect(response.body).to.deep.equal({
-      date,
-      serviceId: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4',
-      availableSlots: []
+      data,
+      nomeServico: 'Corte feminino',
+      horariosDisponiveis: []
     });
   });
 
   it('deve ocultar horarios que conflitam com agendamento existente', async () => {
     const authHeader = await getAuthHeader('client');
-    const date = getNextWorkingDate(7);
+    const data = getNextWorkingDate(7);
 
     createAppointment({
-      data: date,
-      hora: '13:00'
+      data,
+      hora: '13:30'
     });
 
     const response = await request(app)
       .get('/api/availability')
       .query({
-        date,
-        serviceId: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4'
+        data,
+        nomeServico: 'Corte feminino'
       })
       .set(authHeader);
 
     expect(response.status).to.equal(200);
-    expect(response.body.availableSlots.some((slot) => slot.startTime === '13:00')).to.equal(false);
-    expect(response.body.availableSlots.some((slot) => slot.startTime === '14:00')).to.equal(true);
+    expect(response.body.horariosDisponiveis.some((slot) => slot.horaInicio === '13:30')).to.equal(false);
+    expect(response.body.horariosDisponiveis.some((slot) => slot.horaInicio === '14:30')).to.equal(true);
   });
 });

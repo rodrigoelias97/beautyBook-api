@@ -1,6 +1,17 @@
 import { createHttpError } from './http-error.js';
 import { isValidDate, isValidTime, timeToMinutes } from './date-utils.js';
 
+const INVALID_TIME_FORMAT_MESSAGE = 'Formato de hora invalido. Use HH:MM';
+
+function addInvalidTimeFormatIfNeeded(details, field, value) {
+  if (value !== undefined && value !== null && !isValidTime(value)) {
+    details.push({ field, message: INVALID_TIME_FORMAT_MESSAGE });
+    return true;
+  }
+
+  return false;
+}
+
 export function ensureRequiredFields(payload, fieldNames) {
   const details = [];
 
@@ -54,9 +65,9 @@ export function validateServicePayload(payload, existingServices, currentService
   }
 
   if (payload.tempoServico !== undefined && payload.tempoServico !== null) {
-    if (!isValidTime(payload.tempoServico)) {
-      details.push({ field: 'tempoServico', message: 'tempoServico deve estar no formato HH:mm' });
-    } else {
+    const hasInvalidTimeFormat = addInvalidTimeFormatIfNeeded(details, 'tempoServico', payload.tempoServico);
+
+    if (!hasInvalidTimeFormat) {
       const duration = timeToMinutes(payload.tempoServico);
 
       if (duration < 15 || duration > 480) {
@@ -69,51 +80,55 @@ export function validateServicePayload(payload, existingServices, currentService
     details.push({ field: 'valor', message: 'valor deve ser maior que zero' });
   }
 
+  if (payload.valor !== undefined && payload.valor !== null && typeof payload.valor !== 'number') {
+    details.push({ field: 'valor', message: 'valor deve ser numerico' });
+  }
+
   if (details.length > 0) {
     throw createHttpError(400, 'VALIDATION_ERROR', 'Dados do servico invalidos', details);
   }
 }
 
 export function validateBusinessRulesPayload(payload) {
-  ensureRequiredFields(payload, ['timezone', 'openingTime', 'closingTime', 'workingDays', 'breaks']);
+  ensureRequiredFields(payload, ['horaAbertura', 'horaFechamento', 'diasFuncionamento', 'intervalos']);
 
   const details = [];
-  const allowedDays = ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const allowedDays = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
-  if (!isValidTime(payload.openingTime)) {
-    details.push({ field: 'openingTime', message: 'openingTime deve estar no formato HH:mm' });
-  }
+  addInvalidTimeFormatIfNeeded(details, 'horaAbertura', payload.horaAbertura);
+  addInvalidTimeFormatIfNeeded(details, 'horaFechamento', payload.horaFechamento);
 
-  if (!isValidTime(payload.closingTime)) {
-    details.push({ field: 'closingTime', message: 'closingTime deve estar no formato HH:mm' });
-  }
-
-  if (isValidTime(payload.openingTime) && isValidTime(payload.closingTime)) {
-    if (timeToMinutes(payload.openingTime) >= timeToMinutes(payload.closingTime)) {
-      details.push({ field: 'closingTime', message: 'closingTime deve ser maior que openingTime' });
+  if (isValidTime(payload.horaAbertura) && isValidTime(payload.horaFechamento)) {
+    if (timeToMinutes(payload.horaAbertura) >= timeToMinutes(payload.horaFechamento)) {
+      details.push({ field: 'horaFechamento', message: 'horaFechamento deve ser maior que horaAbertura' });
     }
   }
 
-  if (!Array.isArray(payload.workingDays) || payload.workingDays.length === 0) {
-    details.push({ field: 'workingDays', message: 'workingDays deve ser uma lista com pelo menos um dia' });
+  if (!Array.isArray(payload.diasFuncionamento) || payload.diasFuncionamento.length === 0) {
+    details.push({ field: 'diasFuncionamento', message: 'diasFuncionamento deve ser uma lista com pelo menos um dia' });
   } else {
-    const hasInvalidDay = payload.workingDays.some((day) => !allowedDays.includes(day));
+    const hasInvalidDay = payload.diasFuncionamento.some((day) => !allowedDays.includes(day));
     if (hasInvalidDay) {
-      details.push({ field: 'workingDays', message: 'Apenas dias de terca a sabado sao permitidos' });
+      details.push({ field: 'diasFuncionamento', message: 'diasFuncionamento aceita apenas dias validos entre SUNDAY e SATURDAY' });
     }
   }
 
-  if (!Array.isArray(payload.breaks)) {
-    details.push({ field: 'breaks', message: 'breaks deve ser uma lista' });
+  if (!Array.isArray(payload.intervalos)) {
+    details.push({ field: 'intervalos', message: 'intervalos deve ser uma lista' });
   } else {
-    payload.breaks.forEach((item, index) => {
-      if (!isValidTime(item.startTime) || !isValidTime(item.endTime)) {
-        details.push({ field: `breaks[${index}]`, message: 'Os intervalos devem usar o formato HH:mm' });
+    payload.intervalos.forEach((item, index) => {
+      const startField = `intervalos[${index}].horaInicio`;
+      const endField = `intervalos[${index}].horaFim`;
+
+      const startHasInvalidFormat = addInvalidTimeFormatIfNeeded(details, startField, item.horaInicio);
+      const endHasInvalidFormat = addInvalidTimeFormatIfNeeded(details, endField, item.horaFim);
+
+      if (startHasInvalidFormat || endHasInvalidFormat) {
         return;
       }
 
-      if (timeToMinutes(item.startTime) >= timeToMinutes(item.endTime)) {
-        details.push({ field: `breaks[${index}]`, message: 'endTime deve ser maior que startTime' });
+      if (timeToMinutes(item.horaInicio) >= timeToMinutes(item.horaFim)) {
+        details.push({ field: `intervalos[${index}]`, message: 'horaFim deve ser maior que horaInicio' });
       }
     });
   }
@@ -124,17 +139,23 @@ export function validateBusinessRulesPayload(payload) {
 }
 
 export function validateAppointmentPayload(payload) {
-  ensureRequiredFields(payload, ['clienteId', 'servicoId', 'data', 'hora', 'telefone']);
+  ensureRequiredFields(payload, ['nomeCliente', 'nomeServico', 'data', 'hora', 'telefone']);
 
   const details = [];
+
+  if (typeof payload.nomeCliente !== 'string' || payload.nomeCliente.trim().length === 0) {
+    details.push({ field: 'nomeCliente', message: 'nomeCliente e obrigatorio' });
+  }
+
+  if (typeof payload.nomeServico !== 'string' || payload.nomeServico.trim().length === 0) {
+    details.push({ field: 'nomeServico', message: 'nomeServico e obrigatorio' });
+  }
 
   if (!isValidDate(payload.data)) {
     details.push({ field: 'data', message: 'A data deve estar no formato YYYY-MM-DD' });
   }
 
-  if (!isValidTime(payload.hora)) {
-    details.push({ field: 'hora', message: 'A hora deve estar no formato HH:mm' });
-  }
+  addInvalidTimeFormatIfNeeded(details, 'hora', payload.hora);
 
   if (!/^\d{11}$/.test(payload.telefone || '')) {
     details.push({ field: 'telefone', message: 'O telefone deve possuir 11 digitos' });

@@ -16,17 +16,47 @@ const appointmentRoutes = express.Router();
 
 appointmentRoutes.use(authenticate);
 
+function serializeAppointment(appointment) {
+  const cliente = db.users.find((user) => user.id === appointment.clienteId);
+  const servico = db.services.find((serviceItem) => serviceItem.id === appointment.servicoId);
+
+  return {
+    id: appointment.id,
+    nomeCliente: cliente?.name ?? 'Cliente nao encontrado',
+    nomeServico: servico?.name ?? 'Servico nao encontrado',
+    status: appointment.status,
+    data: appointment.data,
+    hora: appointment.hora,
+    telefone: appointment.telefone,
+    observacao: appointment.observacao,
+    motivoCancelamento: appointment.motivoCancelamento,
+    mensagem: appointment.status === 'PENDENTE_AVALIACAO'
+      ? 'Este servico requer avaliacao. Entre em contato com o salao.'
+      : null,
+    tempoEstimado: servico?.tempoServico ?? null,
+    valor: servico?.valor ?? null,
+    createdAt: appointment.createdAt,
+    cancelledAt: appointment.cancelledAt
+  };
+}
+
 appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
   try {
     validateAppointmentPayload(req.body);
 
-    if (req.user.id !== req.body.clienteId) {
+    const cliente = db.users.find((item) => item.name.toLowerCase() === req.body.nomeCliente.trim().toLowerCase());
+
+    if (!cliente) {
+      throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Cliente nao encontrado');
+    }
+
+    if (req.user.id !== cliente.id) {
       throw createHttpError(403, 'FORBIDDEN', 'O cliente pode criar apenas seus proprios agendamentos');
     }
 
-    const service = db.services.find((item) => item.id === req.body.servicoId);
+    const servico = db.services.find((item) => item.name.toLowerCase() === req.body.nomeServico.trim().toLowerCase());
 
-    if (!service) {
+    if (!servico) {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Servico nao encontrado');
     }
 
@@ -36,20 +66,20 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
 
     const workingDay = getWorkingDay(req.body.data);
 
-    if (!db.businessRules.workingDays.includes(workingDay)) {
+    if (!db.businessRules.diasFuncionamento.includes(workingDay)) {
       throw createHttpError(400, 'NON_WORKING_DAY', 'Nao e permitido agendar em dias fora do funcionamento do salao');
     }
 
-    const openingMinutes = timeToMinutes(db.businessRules.openingTime);
-    const closingMinutes = timeToMinutes(db.businessRules.closingTime);
+    const openingMinutes = timeToMinutes(db.businessRules.horaAbertura);
+    const closingMinutes = timeToMinutes(db.businessRules.horaFechamento);
     const requestedMinutes = timeToMinutes(req.body.hora);
 
     if (requestedMinutes < openingMinutes || requestedMinutes >= closingMinutes) {
       throw createHttpError(400, 'OUTSIDE_BUSINESS_HOURS', 'O horario informado esta fora do expediente');
     }
 
-    const conflictsWithBreak = db.businessRules.breaks.some((item) => {
-      return requestedMinutes >= timeToMinutes(item.startTime) && requestedMinutes < timeToMinutes(item.endTime);
+    const conflictsWithBreak = db.businessRules.intervalos.some((item) => {
+      return requestedMinutes >= timeToMinutes(item.horaInicio) && requestedMinutes < timeToMinutes(item.horaFim);
     });
 
     if (conflictsWithBreak) {
@@ -57,18 +87,18 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
     }
 
     const sameDayAppointments = db.appointments.filter((item) => {
-      return item.clienteId === req.body.clienteId && item.data === req.body.data && item.status !== 'CANCELLED';
+      return item.clienteId === cliente.id && item.data === req.body.data && item.status !== 'CANCELLED';
     });
 
     if (sameDayAppointments.length >= 2) {
       throw createHttpError(400, 'DAILY_APPOINTMENT_LIMIT_REACHED', 'O cliente ja possui 2 agendamentos nesta data');
     }
 
-    if (service.necessitaAvaliacao) {
+    if (servico.necessitaAvaliacao) {
       const pendingAppointment = {
         id: generateId(),
-        clienteId: req.body.clienteId,
-        servicoId: req.body.servicoId,
+        clienteId: cliente.id,
+        servicoId: servico.id,
         status: 'PENDENTE_AVALIACAO',
         data: req.body.data,
         hora: req.body.hora,
@@ -81,30 +111,18 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
 
       db.appointments.push(pendingAppointment);
 
-      return res.status(201).json({
-        id: pendingAppointment.id,
-        status: pendingAppointment.status,
-        clienteId: pendingAppointment.clienteId,
-        servico: service,
-        data: pendingAppointment.data,
-        hora: pendingAppointment.hora,
-        telefone: pendingAppointment.telefone,
-        mensagem: 'Este servico requer avaliacao. Entre em contato com o salao.',
-        tempoEstimado: null,
-        valor: null,
-        createdAt: pendingAppointment.createdAt
-      });
+      return res.status(201).json(serializeAppointment(pendingAppointment));
     }
 
-    const durationInMinutes = timeToMinutes(service.tempoServico);
+    const durationInMinutes = timeToMinutes(servico.tempoServico);
     const requestedEnd = requestedMinutes + durationInMinutes;
 
     if (requestedEnd > closingMinutes) {
       throw createHttpError(400, 'OUTSIDE_BUSINESS_HOURS', 'O horario informado ultrapassa o expediente do salao');
     }
 
-    const overlapsBreak = db.businessRules.breaks.some((item) => {
-      return requestedMinutes < timeToMinutes(item.endTime) && requestedEnd > timeToMinutes(item.startTime);
+    const overlapsBreak = db.businessRules.intervalos.some((item) => {
+      return requestedMinutes < timeToMinutes(item.horaFim) && requestedEnd > timeToMinutes(item.horaInicio);
     });
 
     if (overlapsBreak) {
@@ -131,8 +149,8 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
 
     const appointment = {
       id: generateId(),
-      clienteId: req.body.clienteId,
-      servicoId: req.body.servicoId,
+      clienteId: cliente.id,
+      servicoId: servico.id,
       status: 'CONFIRMED',
       data: req.body.data,
       hora: req.body.hora,
@@ -145,19 +163,7 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
 
     db.appointments.push(appointment);
 
-    res.status(201).json({
-      id: appointment.id,
-      status: appointment.status,
-      clienteId: appointment.clienteId,
-      servico: service,
-      data: appointment.data,
-      hora: appointment.hora,
-      telefone: appointment.telefone,
-      mensagem: null,
-      tempoEstimado: service.tempoServico,
-      valor: service.valor,
-      createdAt: appointment.createdAt
-    });
+    res.status(201).json(serializeAppointment(appointment));
   } catch (error) {
     next(error);
   }
@@ -165,35 +171,35 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
 
 appointmentRoutes.get('/', requireRole('ADMIN'), (req, res, next) => {
   try {
-    const { date } = req.query;
+    const { data } = req.query;
 
-    if (!date) {
+    if (!data) {
       throw createHttpError(400, 'VALIDATION_ERROR', 'A data e obrigatoria', [
-        { field: 'date', message: 'Campo obrigatorio' }
+        { field: 'data', message: 'Campo obrigatorio' }
       ]);
     }
 
-    if (!isValidDate(date)) {
+    if (!isValidDate(data)) {
       throw createHttpError(400, 'VALIDATION_ERROR', 'A data deve estar no formato YYYY-MM-DD', [
-        { field: 'date', message: 'A data deve estar no formato YYYY-MM-DD' }
+        { field: 'data', message: 'A data deve estar no formato YYYY-MM-DD' }
       ]);
     }
 
     const result = db.appointments
-      .filter((item) => item.data === date)
+      .filter((item) => item.data === data)
       .sort((first, second) => first.hora.localeCompare(second.hora))
       .map((appointment) => {
-        const client = db.users.find((user) => user.id === appointment.clienteId);
-        const service = db.services.find((serviceItem) => serviceItem.id === appointment.servicoId);
+        const cliente = db.users.find((user) => user.id === appointment.clienteId);
+        const servico = db.services.find((serviceItem) => serviceItem.id === appointment.servicoId);
 
         return {
           id: appointment.id,
-          clientName: client?.name ?? 'Cliente nao encontrado',
-          serviceName: service?.name ?? 'Servico nao encontrado',
+          nomeCliente: cliente?.name ?? 'Cliente nao encontrado',
+          nomeServico: servico?.name ?? 'Servico nao encontrado',
           status: appointment.status,
-          date: appointment.data,
-          time: appointment.hora,
-          valor: service?.valor ?? null
+          data: appointment.data,
+          hora: appointment.hora,
+          valor: servico?.valor ?? null
         };
       });
 
@@ -217,7 +223,7 @@ appointmentRoutes.get('/:appointmentId', (req, res, next) => {
       throw createHttpError(403, 'FORBIDDEN', 'Voce nao pode visualizar o agendamento de outro cliente');
     }
 
-    res.json(appointment);
+    res.json(serializeAppointment(appointment));
   } catch (error) {
     next(error);
   }
@@ -252,7 +258,7 @@ appointmentRoutes.patch('/:appointmentId/cancel', (req, res, next) => {
     appointment.motivoCancelamento = req.body?.reason ?? null;
     appointment.cancelledAt = new Date().toISOString();
 
-    res.json(appointment);
+    res.json(serializeAppointment(appointment));
   } catch (error) {
     next(error);
   }
