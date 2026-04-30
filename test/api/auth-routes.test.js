@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { expect } from 'chai';
-import { app } from '../src/app.js';
-import { validAdminCredentials, validClientCredentials } from './fixtures/auth-fixtures.js';
+import { app } from '../../src/app.js';
+import { validAdminCredentials, validClientCredentials } from '../fixtures/auth-fixtures.js';
 
 describe('Rotas de autenticacao', () => {
   it('deve autenticar administrador usando username', async () => {

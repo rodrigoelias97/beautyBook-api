@@ -1,0 +1,8 @@
+{
+  "nomeCliente": "Cliente Exemplo",
+  "nomeServico": "Corte feminino",
+  "data": "2099-05-06",
+  "hora": "13:30",
+  "telefone": "11999999999",
+  "observacao": "Carga k6"
+}

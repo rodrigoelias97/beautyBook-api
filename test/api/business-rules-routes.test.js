@@ -1,8 +1,8 @@
 import request from 'supertest';
 import { expect } from 'chai';
-import { app } from '../src/app.js';
-import { getAuthHeader } from './helpers/auth-helper.js';
-import { buildBusinessRulesPayload } from './fixtures/business-rules-fixtures.js';
+import { app } from '../../src/app.js';
+import { getAuthHeader } from '../helpers/auth-helper.js';
+import { buildBusinessRulesPayload } from '../fixtures/business-rules-fixtures.js';
 
 describe('Rotas de regras de negocio', () => {
   it('deve retornar as regras atuais para usuario administrador autenticado', async () => {

@@ -44,6 +44,29 @@ Authorization: Bearer SEU_TOKEN
 
 4. Testar os endpoints da API
 
+## Testes automatizados
+
+### API
+
+```bash
+npm test
+```
+
+### Performance com K6
+
+Os testes de performance ficaram organizados de forma semelhante ao projeto de referencia, com pastas `config`, `fixtures`, `helpers`, `tests` e `utils` dentro de [test/performance](C:/Projetos/beautyBook/test/performance).
+
+Os cenarios usam a API rodando em `http://localhost:3000` por padrao, lendo esse valor de [config.local.json](C:/Projetos/beautyBook/test/performance/config/config.local.json). Se quiser apontar para outra URL, defina `BASE_URL`.
+
+Os cenarios exercitam a jornada principal da aplicacao: `GET /health`, `POST /api/auth/login`, `GET /api/services`, `GET /api/availability` e `POST /api/appointments`.
+
+```bash
+npm run test:performance:smoke
+npm run test:performance:load
+npm run test:performance:stress
+npm run test:performance:spike
+```
+
 ## Observacao importante
 
 Os dados ficam apenas em memoria. Quando a aplicacao for reiniciada, tudo volta para o estado inicial.

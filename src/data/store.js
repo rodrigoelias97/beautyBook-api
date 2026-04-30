@@ -18,6 +18,14 @@ const users = [
     email: 'cliente@beautybook.com',
     password: 'cliente123',
     role: 'CLIENT'
+  },
+  {
+    id: '5678fd9f-b933-4fa8-bd6d-7g64f72ecb5c',
+    name: 'Cliente Teste',
+    username: 'clienteTeste',
+    email: 'clienteteste@beautybook.com',
+    password: 'cliente123',
+    role: 'CLIENT'
   }
 ];
 
@@ -26,6 +34,16 @@ const services = [
     id: 'f9505c79-a5ba-4768-aa61-930d7d63ebf4',
     name: 'Corte feminino',
     description: 'Corte com finalizacao simples',
+    necessitaAvaliacao: false,
+    tempoServico: '01:00',
+    valor: 120,
+    createdAt: now,
+    updatedAt: now
+  },
+  {
+    id: 'f9505c79-a5ba-4768-aa61-930d7d63eak7',
+    name: 'Escova',
+    description: 'Escova simples',
     necessitaAvaliacao: false,
     tempoServico: '01:00',
     valor: 80,

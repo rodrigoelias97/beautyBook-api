@@ -77,6 +77,7 @@ Como cliente, quero agendar um servico em um horario disponivel, para reservar m
 
 **Criterios de aceitacao**
 - Apenas usuarios com perfil `CLIENT` podem criar seus proprios agendamentos.
+- Usuarios com perfil `ADMIN` podem criar agendamentos para qualquer cliente.
 - O sistema deve validar `nomeCliente`, `nomeServico`, `data`, `hora` e `telefone`.
 - O telefone deve possuir 11 digitos.
 - O sistema nao deve permitir agendamentos em datas ou horarios passados.
@@ -95,6 +96,7 @@ Como cliente, quero solicitar um servico que exige avaliacao previa, para que o 
 - Quando `necessitaAvaliacao = true`, o sistema nao deve reservar tempo automaticamente na agenda.
 - O status inicial do agendamento deve ser `PENDENTE_AVALIACAO`.
 - O sistema deve exibir a mensagem: "Este servico requer avaliacao. Entre em contato com o salao."
+- O administrador deve poder registrar a solicitacao para o cliente.
 
 ### US08 - Cancelar agendamento
 

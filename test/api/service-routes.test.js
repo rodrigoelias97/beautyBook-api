@@ -1,8 +1,8 @@
 import request from 'supertest';
 import { expect } from 'chai';
-import { app } from '../src/app.js';
-import { getAuthHeader } from './helpers/auth-helper.js';
-import { buildServicePayload } from './fixtures/service-fixtures.js';
+import { app } from '../../src/app.js';
+import { getAuthHeader } from '../helpers/auth-helper.js';
+import { buildServicePayload } from '../fixtures/service-fixtures.js';
 
 describe('Rotas de servicos', () => {
   it('deve bloquear listagem quando o usuario nao estiver autenticado', async () => {
@@ -20,7 +20,7 @@ describe('Rotas de servicos', () => {
       .set(authHeader);
 
     expect(response.status).to.equal(200);
-    expect(response.body).to.be.an('array').with.lengthOf(2);
+    expect(response.body).to.be.an('array').with.lengthOf(3);
   });
 
   it('deve listar servicos para usuario cliente autenticado', async () => {
@@ -31,7 +31,7 @@ describe('Rotas de servicos', () => {
       .set(authHeader);
 
     expect(response.status).to.equal(200);
-    expect(response.body).to.be.an('array').with.lengthOf(2);
+    expect(response.body).to.be.an('array').with.lengthOf(3);
   });
 
   it('deve permitir que administrador cadastre um novo servico', async () => {

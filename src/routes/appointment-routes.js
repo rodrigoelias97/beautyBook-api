@@ -40,7 +40,7 @@ function serializeAppointment(appointment) {
   };
 }
 
-appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
+appointmentRoutes.post('/', requireRole('CLIENT', 'ADMIN'), (req, res, next) => {
   try {
     validateAppointmentPayload(req.body);
 
@@ -50,7 +50,7 @@ appointmentRoutes.post('/', requireRole('CLIENT'), (req, res, next) => {
       throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Cliente nao encontrado');
     }
 
-    if (req.user.id !== cliente.id) {
+    if (req.user.role === 'CLIENT' && req.user.id !== cliente.id) {
       throw createHttpError(403, 'FORBIDDEN', 'O cliente pode criar apenas seus proprios agendamentos');
     }
 
@@ -259,6 +259,22 @@ appointmentRoutes.patch('/:appointmentId/cancel', (req, res, next) => {
     appointment.cancelledAt = new Date().toISOString();
 
     res.json(serializeAppointment(appointment));
+  } catch (error) {
+    next(error);
+  }
+});
+
+appointmentRoutes.delete('/:appointmentId', requireRole('ADMIN'), (req, res, next) => {
+  try {
+    const appointmentIndex = db.appointments.findIndex((item) => item.id === req.params.appointmentId);
+
+    if (appointmentIndex === -1) {
+      throw createHttpError(404, 'RESOURCE_NOT_FOUND', 'Agendamento nao encontrado');
+    }
+
+    db.appointments.splice(appointmentIndex, 1);
+
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

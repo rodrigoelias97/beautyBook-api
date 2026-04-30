@@ -22,6 +22,8 @@
 - CLIENT pode:
   - criar e cancelar seus próprios agendamentos
   - consultar horários disponíveis
+- ADMIN pode:
+  - criar agendamentos e solicitações de avaliação para qualquer cliente
 
 ---
 
@@ -66,6 +68,8 @@
   - disponibilidade de horário
   - horário dentro do expediente (ex: 13:00 às 22:00)
   - dia de trabalho (terça à sábado)
+- CLIENT pode criar apenas seus próprios agendamentos
+- ADMIN pode criar agendamentos para qualquer cliente
 - Não permitir:
   - agendamentos no passado
   - conflito de horário

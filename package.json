@@ -7,8 +7,13 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "mocha --file test/helpers/test-setup.js \"test/**/*.test.js\"",
-    "test:report": "mocha --file test/helpers/test-setup.js \"test/**/*.test.js\" --reporter mochawesome --reporter-options reportDir=mochawesome-report,reportFilename=resultado-testes,quiet=true"
+    "test": "mocha --file test/helpers/test-setup.js \"test/api/**/*.test.js\"",
+    "test:api": "mocha --file test/helpers/test-setup.js \"test/api/**/*.test.js\"",
+    "test:report": "mocha --file test/helpers/test-setup.js \"test/api/**/*.test.js\" --reporter mochawesome --reporter-options reportDir=mochawesome-report,reportFilename=resultado-testes,quiet=true",
+    "test:performance:smoke": "k6 run test/performance/tests/smoke.test.js",
+    "test:performance:load": "k6 run test/performance/tests/load.test.js",
+    "test:performance:stress": "k6 run test/performance/tests/stress.test.js",
+    "test:performance:spike": "k6 run test/performance/tests/spike.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",

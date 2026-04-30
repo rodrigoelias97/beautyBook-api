@@ -1,9 +1,9 @@
 import request from 'supertest';
 import { expect } from 'chai';
-import { app } from '../src/app.js';
-import { getAuthHeader } from './helpers/auth-helper.js';
-import { createAppointment } from './helpers/appointment-helper.js';
-import { getNextNonWorkingDate, getNextWorkingDate } from './helpers/date-helper.js';
+import { app } from '../../src/app.js';
+import { getAuthHeader } from '../helpers/auth-helper.js';
+import { createAppointment } from '../helpers/appointment-helper.js';
+import { getNextNonWorkingDate, getNextWorkingDate } from '../helpers/date-helper.js';
 
 describe('Rotas de disponibilidade', () => {
   it('deve exigir os parametros obrigatorios da consulta', async () => {
@@ -107,5 +107,26 @@ describe('Rotas de disponibilidade', () => {
     expect(response.status).to.equal(200);
     expect(response.body.horariosDisponiveis.some((slot) => slot.horaInicio === '13:30')).to.equal(false);
     expect(response.body.horariosDisponiveis.some((slot) => slot.horaInicio === '14:30')).to.equal(true);
+    expect(response.body.horariosDisponiveis.some((slot) => slot.horaInicio === '14:45')).to.equal(false);
+  });
+
+  it('deve retornar horarios disponiveis apenas de meia em meia hora', async () => {
+    const authHeader = await getAuthHeader('client');
+    const data = getNextWorkingDate(7);
+
+    const response = await request(app)
+      .get('/api/availability')
+      .query({
+        data,
+        nomeServico: 'Corte feminino'
+      })
+      .set(authHeader);
+
+    expect(response.status).to.equal(200);
+    expect(response.body.horariosDisponiveis.length).to.be.greaterThan(0);
+
+    response.body.horariosDisponiveis.forEach((slot) => {
+      expect(['00', '30']).to.include(slot.horaInicio.slice(3, 5));
+    });
   });
 });

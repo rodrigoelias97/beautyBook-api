@@ -66,7 +66,7 @@ availabilityRoutes.get('/', (req, res, next) => {
 
     const horariosDisponiveis = [];
 
-    for (let startMinutes = openingMinutes; startMinutes + durationInMinutes <= closingMinutes; startMinutes += 15) {
+    for (let startMinutes = openingMinutes; startMinutes + durationInMinutes <= closingMinutes; startMinutes += 30) {
       const slotStart = addMinutes('00:00', startMinutes);
       const slotEnd = addMinutes(slotStart, durationInMinutes);
 

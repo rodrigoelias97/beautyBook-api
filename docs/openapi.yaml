@@ -348,7 +348,8 @@ paths:
       description: |
         Consulta disponibilidade por data obrigatoria, com filtro opcional de hora.
         O calculo considera horario de funcionamento, dias de operacao, intervalos,
-        horarios ocupados e duracao do servico.
+        horarios ocupados e duracao do servico. Os horarios retornados sao exibidos
+        sempre em intervalos de 30 minutos.
       parameters:
         - name: data
           in: query
@@ -388,11 +389,14 @@ paths:
       tags: [Agendamentos]
       summary: Cria um agendamento ou solicitacao de avaliacao
       description: |
-        Recurso restrito ao perfil `CLIENT`. Quando o servico possuir
+        Recurso permitido para os perfis `CLIENT` e `ADMIN`. O cliente pode criar
+        apenas seus proprios agendamentos. O administrador pode criar agendamentos
+        e solicitacoes de avaliacao para qualquer cliente. Quando o servico possuir
         `necessitaAvaliacao = true`, a API cria uma solicitacao com status
         `PENDENTE_AVALIACAO` e nao bloqueia horario automaticamente.
       x-roles:
         - CLIENT
+        - ADMIN
       requestBody:
         required: true
         content:
@@ -501,6 +505,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Agendamentos]
+      summary: Exclui um agendamento
+      description: Recurso restrito ao perfil `ADMIN`.
+      x-roles:
+        - ADMIN
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '204':
+          description: Agendamento excluido com sucesso
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
