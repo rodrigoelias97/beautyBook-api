@@ -1,0 +1,7 @@
+interface:
+  display_name: "BeautyBook API Performance"
+  short_description: "Manter cenarios de performance K6"
+  default_prompt: "Use $beautybook-api-performance para atualizar ou analisar a cobertura de performance com K6 da BeautyBook API."
+
+policy:
+  allow_implicit_invocation: true

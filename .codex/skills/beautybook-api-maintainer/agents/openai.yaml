@@ -1,0 +1,7 @@
+interface:
+  display_name: "BeautyBook API Maintainer"
+  short_description: "Implementar e manter mudancas na API"
+  default_prompt: "Use $beautybook-api-maintainer para implementar ou refinar uma mudanca no repositorio da BeautyBook API."
+
+policy:
+  allow_implicit_invocation: true

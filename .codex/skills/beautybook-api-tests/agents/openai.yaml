@@ -1,0 +1,7 @@
+interface:
+  display_name: "BeautyBook API Tests"
+  short_description: "Criar e ajustar cobertura de testes"
+  default_prompt: "Use $beautybook-api-tests para criar ou atualizar testes automatizados da BeautyBook API."
+
+policy:
+  allow_implicit_invocation: true

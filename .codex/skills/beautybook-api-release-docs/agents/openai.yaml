@@ -1,0 +1,7 @@
+interface:
+  display_name: "BeautyBook API Release Docs"
+  short_description: "Manter README, OpenAPI e docs alinhados"
+  default_prompt: "Use $beautybook-api-release-docs para atualizar a documentacao da BeautyBook API apos uma mudanca no repositorio."
+
+policy:
+  allow_implicit_invocation: true
