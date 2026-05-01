@@ -4,6 +4,31 @@ O BeautyBook é uma API REST para agendamentos de horários em salão de beleza.
 
 Atualmente o projeto foi desenvolvido em JavaScript com Express e utiliza armazenamento em memória, o que facilita a execução local e os testes da regra de negócio.
 
+## Ferramentas e tecnologias utilizadas
+
+### Desenvolvimento da API
+
+- `JavaScript` como linguagem principal da aplicação.
+- `Node.js` como ambiente de execução.
+- `Express` como framework para construção da API REST.
+- `ES Modules` com `type: module` para organização dos módulos JavaScript.
+- Banco de dados em memória para armazenamento temporário de usuários, serviços, sessões, regras operacionais e agendamentos.
+
+### Documentação
+
+- `OpenAPI 3.0.3` para definição do contrato da API.
+- `Swagger UI` para documentação interativa dos endpoints.
+- `swagger-ui-express` para servir a documentação na aplicação.
+- `YAML` com `yamljs` para leitura do arquivo `openapi.yaml`.
+
+### Testes e qualidade
+
+- `Mocha` como test runner da suíte de API.
+- `Chai` para asserções dos testes automatizados.
+- `Supertest` para testes HTTP dos endpoints.
+- `Mochawesome` para geração de relatório HTML dos testes.
+- `K6` para testes de performance nos cenários smoke, load, stress e spike.
+
 ## Funcionalidades
 
 - Autenticação com login por e-mail ou nome de usuário.
