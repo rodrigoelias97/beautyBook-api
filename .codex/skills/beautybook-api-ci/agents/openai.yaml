@@ -1,0 +1,7 @@
+interface:
+  display_name: "BeautyBook API CI"
+  short_description: "Atualizar o workflow de CI do repo"
+  default_prompt: "Use $beautybook-api-ci para ajustar ou revisar o workflow de GitHub Actions da BeautyBook API."
+
+policy:
+  allow_implicit_invocation: true
